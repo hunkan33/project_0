@@ -1,0 +1,60 @@
+#!/bin/bash
+# =====================================================================
+#  commit-msg —— 提交信息格式门禁
+# =====================================================================
+#  位置：scripts/githooks/commit-msg
+#  由 scripts/repo_init.sh 通过 core.hooksPath 挂上，不需要拷进 .git/hooks
+#
+#  规则来源：AGENT.md 二.3
+#    · 一次提交只做一件事
+#    · 首行格式 <模块>: <摘要>，模块用小写英文/数字/下划线/斜杠/点/加减号
+#    · 正文写：原因 / 影响 / 验证证据 / 关联需求 / 回滚点
+#
+#  【为什么只硬拦首行，正文只提示】
+#    首行是唯一能被机器确定性判定的部分。正文质量无法用正则判定，
+#    硬拦会把「改一行注释」这类合理小提交也挡掉，反而诱使人加 --no-verify，
+#    门禁就失效了。判定不了的东西不塞进门禁 —— 这是本脚本的取舍。
+# =====================================================================
+
+set -u
+
+MSG_FILE="$1"
+
+# git 会自动带 # 注释行；空提交信息（-m "" 或编辑器没存）直接拒
+FIRST=$(grep -vE '^[[:space:]]*#' "$MSG_FILE" | sed -n '1p')
+if [ -z "$FIRST" ]; then
+    echo "❌ 提交信息为空"
+    exit 1
+fi
+
+# 机器生成的提交不套用本项目的格式（merge / revert / 交互式 rebase 标记）
+case "$FIRST" in
+    Merge*|Revert*|fixup!*|squash!*|amend!*)
+        exit 0
+        ;;
+esac
+
+if ! printf '%s' "$FIRST" | grep -qE '^[a-z0-9_./+-]+: .+$'; then
+    echo "❌ 首行格式不对：$FIRST"
+    echo "   要求：<模块>: <摘要>"
+    echo "   示例：camera: 修正白平衡 CID 用表达式导致 EINVAL"
+    echo "   模块取目录或职责名：app camera common device recorder stage ui scripts tests repo"
+    exit 1
+fi
+
+# 摘要按字符计（中文 1 字算 1），超 72 字说明这一件事没收敛
+SUBJ=$(printf '%s' "$FIRST" | sed 's/^[^:]*: //')
+LEN=$(printf '%s' "$SUBJ" | wc -m | tr -d ' ')
+if [ "$LEN" -gt 72 ]; then
+    echo "❌ 摘要 $LEN 字，超过 72 字上限：$SUBJ"
+    echo "   → 拆成多个提交，或把细节挪到正文"
+    exit 1
+fi
+
+# 正文只提示不拦：质量无法判定，见文件头说明
+BODY=$(grep -vE '^[[:space:]]*#' "$MSG_FILE" | sed -n '2,$p' | tr -d '[:space:]')
+if [ -z "$BODY" ]; then
+    echo "⚠️  正文为空。AGENT.md 二.3 要求正文写：原因 / 影响 / 验证证据 / 关联需求 / 回滚点"
+fi
+
+exit 0

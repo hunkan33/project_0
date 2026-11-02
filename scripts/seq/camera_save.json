@@ -1,0 +1,22 @@
+{
+  "name": "camera_save",
+  "settle": 0.25,
+  "steps": [
+    {"shot": "start"},
+    {"click": [892, 564], "note": "底栏「设置」", "expect": "Main --ClickSettings--> Settings"},
+    {"wait": 700},
+    {"shot": "settings"},
+    {"click": [512, 552], "note": "「摄像头设置」", "expect": "Settings --ClickCamera--> CameraSettings"},
+    {"wait": 900},
+    {"shot": "camera_page"},
+    {"click": [894, 552], "note": "「保存」", "expect": "已保存"},
+    {"wait": 1500},
+    {"shot": "after_save"},
+    {"click": [130, 552], "note": "「返回」", "expect": "CameraSettings --ClickBack--> Settings"},
+    {"wait": 700},
+    {"shot": "back_settings"},
+    {"click": [130, 552], "note": "「返回」回主界面", "expect": "Settings --ClickBack--> Main"},
+    {"wait": 1200},
+    {"shot": "back_main"}
+  ]
+}

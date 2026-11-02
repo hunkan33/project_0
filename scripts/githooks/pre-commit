@@ -1,0 +1,25 @@
+#!/bin/bash
+# =====================================================================
+#  pre-commit —— 提交前门禁（薄壳，真正的检查在 scripts/gate.sh）
+# =====================================================================
+#  位置：scripts/githooks/pre-commit
+#  由 scripts/repo_init.sh 通过 core.hooksPath 挂上，不需要拷进 .git/hooks
+#
+#  【为什么只做转调，不在这里写检查】
+#    同一套规则要在三个时机跑：commit 前、提交前自查、CI。
+#    实现只留一份（gate.sh），钩子只负责"在正确的时机用正确的模式调用它"。
+#    两份实现迟早会分叉，那时门禁结论就不可信了。
+# =====================================================================
+
+set -u
+
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$HOOK_DIR/../.." && pwd)"
+
+if [ ! -f "$ROOT/scripts/gate.sh" ]; then
+    echo "❌ 找不到 scripts/gate.sh，钩子无法工作"
+    echo "   仓库被裁剪过？跑 bash scripts/repo_init.sh 重新校准"
+    exit 1
+fi
+
+exec bash "$ROOT/scripts/gate.sh" --staged
