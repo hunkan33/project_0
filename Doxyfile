@@ -1,0 +1,84 @@
+# =============================================================================
+#  Doxyfile —— 从源码注释生成 API 文档
+# =============================================================================
+#  用法：
+#      doxygen Doxyfile              # 生成到 docs/doxygen/html/
+#      然后打开 docs/doxygen/html/index.html
+#
+#  注释规范见 AGENT.md §6.3（.h 写合同，.c/.cpp 写 why）
+# =============================================================================
+
+PROJECT_NAME           = "T113 DVR"
+PROJECT_BRIEF          = "车载行车记录仪（ATK-DLT113IS / 全志 T113-i）"
+OUTPUT_DIRECTORY       = docs/doxygen
+OUTPUT_LANGUAGE        = Chinese
+
+# ---- 输入 ----
+# 2026-11-01 目录重构：.h 全部搬到 include/（与 src/ 平级、按域镜像）。
+# Doxygen 的注释主要在 .h 里，只写 src 会生成一份几乎空的文档。
+INPUT                  = src include
+FILE_PATTERNS          = *.h *.hpp *.c *.cpp
+RECURSIVE              = YES
+INPUT_ENCODING         = UTF-8
+EXCLUDE_PATTERNS       = */third_party/*
+
+# ---- 抽取策略 ----
+# EXTRACT_ALL = YES：没写注释的符号也列进文档（只是没有描述）。
+#
+#   ★ 一开始设的是 NO，跑出来 warnings.log 是空的 —— 因为 EXTRACT_ALL=NO 时
+#     没注释的符号根本不会被抽取，WARN_IF_UNDOCUMENTED 自然也不报，
+#     "检查器"直接失效。改成 YES 才能看到哪些是空描述。
+#
+#   注：doxygen 的 WARN_IF_UNDOCUMENTED 只对"已有描述的类/文件"的成员报警，
+#     所以它查不出"整个文件都没写注释"这种情况 —— 那种要自己按 .h 统计。
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES    # .c 里的 static 函数也要（它们是实现层的主体）
+EXTRACT_PRIVATE        = YES
+EXTRACT_LOCAL_CLASSES  = YES
+HIDE_UNDOC_MEMBERS     = NO     # 没注释的成员照样列出来，好看出缺口
+HIDE_UNDOC_CLASSES     = NO
+
+# ---- 语言细节 ----
+JAVADOC_AUTOBRIEF      = NO     # 必须写 @brief，不靠首行自动推断（更严格）
+QT_AUTOBRIEF           = NO
+OPTIMIZE_OUTPUT_FOR_C  = NO     # 本工程 C 和 C++ 混用，不按纯 C 优化
+MARKDOWN_SUPPORT       = YES
+TAB_SIZE               = 4
+
+# ---- ★ Qt 宏预处理 ----
+# Doxygen 不认识 Qt 关键字，不处理的话：
+#   · signals: 会被当成变量声明
+#   · 后面的 public: 被误判，signal 在文档里全消失
+# signals=public 是标准技巧：把 signals 展开成 public，Doxygen 就当成访问修饰符。
+PREDEFINED             = Q_OBJECT= \
+                         Q_PROPERTY(x)= \
+                         Q_GADGET= \
+                         signals=public \
+                         slots= \
+                         emit= \
+                         Q_EMIT= \
+                         Q_SIGNALS=public \
+                         Q_SLOTS=
+
+# ---- 输出 ----
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+SOURCE_BROWSER         = YES     # 文档里能点进源码看实现
+INLINE_SOURCES         = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# ---- 告警：把"注释写错"变成可见的构建错误 ----
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES     # @param 写了不存在的参数名 → 报警
+WARN_NO_PARAMDOC       = YES     # 有 @param 但漏了某个参数 → 报警
+WARN_AS_ERROR          = NO      # 先不阻断，改成 YES 可以当 CI 闸门
+WARN_LOGFILE           = docs/doxygen/warnings.log
+
+# ---- Graphviz ----
+# 没装 graphviz 时 dot 命令不存在，doxygen 会对每个类图报 exit code=127。
+# 本项目的文档价值在"接口说明"，不在继承/依赖图，所以直接关掉。
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = NO
